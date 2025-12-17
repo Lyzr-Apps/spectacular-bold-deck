@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const AGENT_ID = '6942a7744f5531c6f3c71038'
-const AGENT_ENDPOINT = 'https://api.anthropic.com/agents'
+const LYZR_API_URL = 'https://api.lyzr.ai/v1/agents'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,22 +14,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call the agent API
-    const response = await fetch(`${AGENT_ENDPOINT}/chat`, {
+    // Call the Lyzr agent API
+    const response = await fetch(`${LYZR_API_URL}/${AGENT_ID}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'Authorization': `Bearer ${process.env.LYZR_API_KEY || ''}`,
       },
       body: JSON.stringify({
-        agent_id: AGENT_ID,
-        message: message,
+        user_message: message,
       }),
     })
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Agent API error:', error)
+      console.error('Agent API error:', error, 'Status:', response.status)
       return NextResponse.json(
         { error: 'Failed to get response from agent' },
         { status: response.status }
@@ -37,7 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json({
+      message: data.response || data.message || data.data,
+    })
   } catch (error) {
     console.error('Chat API error:', error)
     return NextResponse.json(
